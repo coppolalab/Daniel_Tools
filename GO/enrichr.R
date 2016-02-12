@@ -13,7 +13,7 @@ library(STRINGdb)
 library(Cairo)
 library(TeachingDemos)
 
-get.enrichrdata <- function(database, gene.df, use.weights)
+get.enrichrdata <- function(database, gene.df, use.weights = FALSE)
 {
     mainurl <- "http://amp.pharm.mssm.edu/Enrichr"
     if (use.weights == TRUE)
@@ -66,7 +66,7 @@ reshapedata <- function(orig.list)
     return(orig.list)
 }
 
-get.stringdb <- function(symbols.df, plot.name, prefix = "./", edge.threshold)
+get.stringdb <- function(symbols.df, plot.name, prefix = "./", edge.threshold = 0)
 {
     string_db <- STRINGdb(species = 9606, version = "10")
     symbols.mapped <- string_db$map(symbols.df, "Symbol", removeUnmappedRows = TRUE) %>% select(Symbol, STRING_id) #Get STRINGDB protein ids for all symbols
