@@ -24,7 +24,7 @@ get.enrichrdata <- function(database, gene.df, use.weights = FALSE)
     }
     else
     {
-        gene.list <- select(gene.df, Symbol) %>% as.matrix %>% as.vector
+        gene.list <- select(gene.df, Symbol) %>% unlist
         gene.list.format <- paste(gene.list, collapse = "\n")
     }
 
@@ -40,14 +40,14 @@ get.enrichrdata <- function(database, gene.df, use.weights = FALSE)
     content.df <- lapply(get.content, reshapedata) %>% reduce(rbind) %>% data.frame
     if (ncol(content.df) == 7)
     {
-        colnames(content.df) <- c("Index", "GO.Term", "P.value", "Z.score", "Combined.Score", "Genes", "Adj.P.value")
+        colnames(content.df) <- c("Index", "Term", "P.value", "Z.score", "Combined.Score", "Genes", "Adj.P.value")
         content.df$P.value %<>% as.numeric
         content.df$Z.score %<>% as.numeric
         content.df$Combined.Score %<>% as.numeric
         content.df$Adj.P.value %<>% as.numeric
         content.df$Index %<>% as.numeric
 
-        content.df$GO.Term %<>% as.character
+        content.df$Term %<>% as.character
         content.df$Genes %<>% as.character
 
         content.df %<>% select(Index:P.value, Adj.P.value, Z.score:Genes)
@@ -66,9 +66,9 @@ reshapedata <- function(orig.list)
     return(orig.list)
 }
 
-get.stringdb <- function(symbols.df, plot.name, prefix = "./", edge.threshold = 0)
+get.stringdb <- function(symbols.df, plot.name, prefix = ".", edge.threshold = 0, species.id = 9606)
 {
-    string_db <- STRINGdb(species = 9606, version = "10")
+    string_db <- STRINGdb(species = species.id, version = "10")
     symbols.mapped <- string_db$map(symbols.df, "Symbol", removeUnmappedRows = TRUE) %>% select(Symbol, STRING_id) #Get STRINGDB protein ids for all symbols
     symbols.filtered <- filter(symbols.mapped, !duplicated(STRING_id)) #Remove redundant proteins
     symbols.subnet <- string_db$get_subnetwork(symbols.filtered$STRING_id) #Get the interaction network for the given protein
@@ -91,5 +91,6 @@ get.stringdb <- function(symbols.df, plot.name, prefix = "./", edge.threshold = 
     CairoPDF(filepath, width = 30, height = 30)
     plot.igraph(pruned.subnet2, vertex.size = 2, vertex.label.dist = 0.12, vertex.label.degree = -pi/2, vertex.label.font = 2, vertex.label.color = "black", edge.width = edge.thickness, edge.color = "#0000FF99")
     dev.off()
+    return(symbols.subnet)
 }
 
