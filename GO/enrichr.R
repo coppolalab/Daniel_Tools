@@ -17,25 +17,47 @@ library(BayesFactor)
 enrichr.names <- list()
 enrichr.clean <- list()
 
-gobiol <- read_lines("~/Documents/_Research/code/GO/GO_Biological_Process_2015.txt") %>% map(str_split, "\t") %>% map(extract2, 1) 
+gobiol <- read_lines("~/Documents/_Research/code/GO/GO_Biological_Process_2015.txt") %>% 
+    map(str_split, "\t") %>% 
+    map(extract2, 1) 
 enrichr.names[["GO Biological Process"]] <- map_chr(gobiol, magrittr::extract, 1)
-enrichr.clean[["GO Biological Process"]] <- map(gobiol, head, -1) %>% map(tail, -2) %>% map(toupper)
+enrichr.clean[["GO Biological Process"]] <- map(gobiol, head, -1) %>% 
+    map(tail, -2) %>% 
+    map(toupper)
 
-gomole <- read_lines("~/Documents/_Research/code/GO/GO_Molecular_Function_2015.txt") %>% map(str_split, "\t") %>% map(extract2, 1) 
+gomole <- read_lines("~/Documents/_Research/code/GO/GO_Molecular_Function_2015.txt") %>% 
+    map(str_split, "\t") %>% 
+    map(extract2, 1) 
 enrichr.names[["GO Molecular Function"]] <- map_chr(gomole, magrittr::extract, 1)
-enrichr.clean[["GO Molecular Function"]] <- map(gomole, head, -1) %>% map(tail, -2) %>% map(toupper)
+enrichr.clean[["GO Molecular Function"]] <- map(gomole, head, -1) %>% 
+    map(tail, -2) %>% 
+    map(toupper)
 
-gocell <- read_lines("~/Documents/_Research/code/GO/GO_Cellular_Component_2015.txt") %>% map(str_split, "\t") %>% map(extract2, 1) 
+gocell <- read_lines("~/Documents/_Research/code/GO/GO_Cellular_Component_2015.txt") %>% 
+    map(str_split, "\t") %>% 
+    map(extract2, 1) 
 enrichr.names[["GO Cellular Component"]] <- map_chr(gocell, magrittr::extract, 1)
-enrichr.clean[["GO Cellular Component"]] <- map(gocell, head, -1) %>% map(tail, -2) %>% map(toupper)
+enrichr.clean[["GO Cellular Component"]] <- map(gocell, head, -1) %>% 
+    map(tail, -2) %>% 
+    map(toupper)
 
-kegg <- read_lines("~/Documents/_Research/code/GO/KEGG_2016.txt") %>% map(str_split, "\t") %>% map(extract2, 1) 
+kegg <- read_lines("~/Documents/_Research/code/GO/KEGG_2016.txt") %>% 
+    map(str_split, "\t") %>% 
+    map(extract2, 1) 
 enrichr.names[["KEGG"]] <- map_chr(kegg, magrittr::extract, 1)
-enrichr.clean[["KEGG"]] <- map(kegg, head, -1) %>% map(tail, -2) %>% map(str_replace, ",.*$", "") %>% map(toupper)
+enrichr.clean[["KEGG"]] <- map(kegg, head, -1) %>% 
+    map(tail, -2) %>% 
+    map(str_replace, ",.*$", "") %>% 
+    map(toupper)
 
-reactome <- read_lines("~/Documents/_Research/code/GO/Reactome_2016.txt") %>% map(str_split, "\t") %>% map(extract2, 1) 
+reactome <- read_lines("~/Documents/_Research/code/GO/Reactome_2016.txt") %>% 
+    map(str_split, "\t") %>% 
+    map(extract2, 1) 
 enrichr.names[["Reactome"]] <- map_chr(reactome, magrittr::extract, 1)
-enrichr.clean[["Reactome"]] <- map(reactome, head, -1) %>% map(tail, -2) %>% map(str_replace, ",.*$", "") %>% map(toupper)
+enrichr.clean[["Reactome"]] <- map(reactome, head, -1) %>% 
+    map(tail, -2) %>% 
+    map(str_replace, ",.*$", "") %>% 
+    map(toupper)
 
 #gtex.up <- read_lines("~/Documents/_Research/code/GO/GTEx_Tissue_Sample_Gene_Expression_Profiles_up.txt") %>% map(str_split, "\t") %>% map(extract2, 1) 
 #enrichr.names[["GTEx Up"]] <- map_chr(gtex.up, magrittr::extract, 1)
@@ -46,9 +68,12 @@ enrichr.clean[["Reactome"]] <- map(reactome, head, -1) %>% map(tail, -2) %>% map
 #enrichr.clean[["GTEx Down"]] <- map(gtex.down, head, -1) %>% map(tail, -2) %>% map(str_replace, ",.*$", "") %>% map(toupper)
 
 GetHyper <- function(database, gene.sig, all.genes) {
+    print(str_c("Getting enrichment for ", database, "..."))
+
     enrichr.name <- enrichr.names[[database]]
     enrichr.cleaned <- enrichr.clean[[database]]
 
+    print("...generating contingency tables...")
     sig.intersect <- map(enrichr.cleaned, intersect, gene.sig)
     list.diff <- map_int(sig.intersect, length)
 
@@ -62,13 +87,22 @@ GetHyper <- function(database, gene.sig, all.genes) {
     column1 <- map2(list.diff, notlist.diff, c)
     column2 <- map2(list.notdiff, notlist.notdiff, c)
     table.list <- map2(column1, column2, cbind)
+    print("...tables generated.  Running hypergeometric test...")
     bf.tables <- map(table.list, contingencyTableBF, sampleType = "hypergeom")
-    bf.tables.extract <- map(bf.tables, extractBF) %>% map_dbl(extract2, "bf")
+    bf.tables.extract <- map(bf.tables, extractBF) %>% 
+        map_dbl(extract2, "bf") %>%
+        map_dbl(log10) %>% 
+        map_dbl(signif, 3)
+    print("...done.")
 
-    intersect.format <- map(sig.intersect, str_c, collapse = ",") %>% reduce(c)
-    bf.df <- data.frame(Term = enrichr.name, Num.Genes = list.diff, Bayes.Factor = bf.tables.extract) %>% filter(Num.Genes > 0)
+    intersect.format <- map(sig.intersect, str_c, collapse = ",") %>% 
+        reduce(c)
+    bf.df <- data.frame(Term = enrichr.name, Num.Genes = list.diff, Log.Bayes.Factor = bf.tables.extract) %>% 
+        filter(Num.Genes > 0)
     bf.df$Genes <- intersect.format
-    bf.filter <- filter(bf.df, Bayes.Factor > 3) %>% filter(Num.Genes > 4) %>% arrange(desc(Bayes.Factor))
+    bf.filter <- filter(bf.df, Log.Bayes.Factor > 0.5) %>% 
+        filter(Num.Genes > 4) %>% 
+        arrange(desc(Log.Bayes.Factor))
     bf.filter
 }
 

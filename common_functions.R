@@ -41,22 +41,22 @@ GetKappaCluster <- function(filename, enrichr.output, gene.names, sig.measure = 
 
     rownames(enrichr.kappa) <- colnames(enrichr.kappa) <- enrichr.output$Term
 
-    CairoPDF(str_c(filename, "heatmap", sep = "."), width = 30, height = 30)
-    heatmap.plus(enrichr.kappa, col = heat.colors(40), symm = TRUE, margins = c(20,20))
-    dev.off()
+    #CairoPDF(str_c(filename, "heatmap", sep = "."), width = 30, height = 30)
+    #heatmap.plus(enrichr.kappa, col = heat.colors(40), symm = TRUE, margins = c(20,20))
+    #dev.off()
 
     kappa.dist <- dist(enrichr.kappa, method = "manhattan")
     kappa.clust <- hclust(kappa.dist, method = "average")
 
-    CairoPDF(str_c(filename, "clust", sep = "."), height = 30, width = 30)
-    plot(kappa.clust)
-    dev.off()
+    #CairoPDF(str_c(filename, "clust", sep = "."), height = 30, width = 30)
+    #plot(kappa.clust)
+    #dev.off()
 
     kappa.modules <- cutreeDynamic(kappa.clust, minClusterSize = 2, method = "tree")
     kappa.modules.df <- data.frame(Term = rownames(enrichr.kappa), Module = kappa.modules)
 
     enrichr.output$Module <- kappa.modules
-    if (sig.measure == "Bayes.Factor"){
+    if (sig.measure == "Log.Bayes.Factor"){
         enrichr.output %<>% arrange_(str_c("desc(", sig.measure, ")")) 
         enrichr.output$Index <- 1:nrow(enrichr.output)
     }
@@ -91,11 +91,7 @@ GetPPI <- function(gene.list) {
     colnames(ppi.biogrid) <- c("Symbol.A", "Symbol.B")
 
     ppi.combined <- rbind(ppi.inweb.final, ppi.biogrid)
-    ppi.combined$unique <- str_c(ppi.combined$Symbol.A, ppi.combined$Symbol.B, sep = ".")
-    ppi.unique <- filter(ppi.combined, !duplicated(unique)) %>% select(-unique)
-    ppi.self <- apply(ppi.unique, 1, reduce, identical)
-    ppi.unique.final <- filter(ppi.unique, !ppi.self)
-    return(ppi.unique.final)
+    return(ppi.combined)
 }
 
 #PPI Plot
