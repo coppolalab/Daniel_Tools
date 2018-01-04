@@ -17,28 +17,31 @@ library(BayesFactor)
 enrichr.names <- list()
 enrichr.clean <- list()
 
-gobiol <- read_lines("~/Documents/_Research/code/GO/GO_Biological_Process_2015.txt") %>% 
+gobiol <- read_lines("~/Documents/_Research/code/GO/GO_Biological_Process_2017b.txt") %>% 
     map(str_split, "\t") %>% 
     map(extract2, 1) 
 enrichr.names[["GO Biological Process"]] <- map_chr(gobiol, magrittr::extract, 1)
 enrichr.clean[["GO Biological Process"]] <- map(gobiol, head, -1) %>% 
     map(tail, -2) %>% 
+    map(str_replace, ",.*", "") %>%
     map(toupper)
 
-gomole <- read_lines("~/Documents/_Research/code/GO/GO_Molecular_Function_2015.txt") %>% 
+gomole <- read_lines("~/Documents/_Research/code/GO/GO_Molecular_Function_2017b.txt") %>% 
     map(str_split, "\t") %>% 
     map(extract2, 1) 
 enrichr.names[["GO Molecular Function"]] <- map_chr(gomole, magrittr::extract, 1)
 enrichr.clean[["GO Molecular Function"]] <- map(gomole, head, -1) %>% 
     map(tail, -2) %>% 
+    map(str_replace, ",.*", "") %>%
     map(toupper)
 
-gocell <- read_lines("~/Documents/_Research/code/GO/GO_Cellular_Component_2015.txt") %>% 
+gocell <- read_lines("~/Documents/_Research/code/GO/GO_Cellular_Component_2017b.txt") %>% 
     map(str_split, "\t") %>% 
     map(extract2, 1) 
 enrichr.names[["GO Cellular Component"]] <- map_chr(gocell, magrittr::extract, 1)
 enrichr.clean[["GO Cellular Component"]] <- map(gocell, head, -1) %>% 
     map(tail, -2) %>% 
+    map(str_replace, ",.*", "") %>%
     map(toupper)
 
 kegg <- read_lines("~/Documents/_Research/code/GO/KEGG_2016.txt") %>% 
@@ -97,12 +100,12 @@ GetHyper <- function(database, gene.sig, all.genes) {
 
     intersect.format <- map(sig.intersect, str_c, collapse = ",") %>% 
         reduce(c)
-    bf.df <- data.frame(Term = enrichr.name, Num.Genes = list.diff, Log.Bayes.Factor = bf.tables.extract) %>% 
+    bf.df <- data.frame(Term = enrichr.name, Num.Genes = list.diff, logBF = bf.tables.extract) %>% 
         filter(Num.Genes > 0)
     bf.df$Genes <- intersect.format
-    bf.filter <- filter(bf.df, Log.Bayes.Factor > 0.5) %>% 
+    bf.filter <- filter(bf.df, logBF > 0.5) %>% 
         filter(Num.Genes > 4) %>% 
-        arrange(desc(Log.Bayes.Factor))
+        arrange(desc(logBF))
     bf.filter
 }
 
